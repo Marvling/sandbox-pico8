@@ -2,22 +2,6 @@ pico-8 cartridge // http://www.pico-8.com
 version 32
 __lua__
 
-frame = 0
-
-obj_x = 78
-obj_dx = 1.6
-obj_y = 12
-obj_dy = 3.2
-obj_r = 2
-obj_col = 7
-
-pad_x = 51
-pad_y = 108
-pad_w = 24
-pad_h = 3
-
-pad_v = 0
-pad_a = 0.2
 
 function change_obj_col (speed)
 	obj_col %= 15
@@ -39,33 +23,80 @@ function check_obj_collision(x, y, w, h)
 	
 	--left
 	if obj_x - obj_r < x then
-		return true
+		return false	
 	end
 
 	-- right
 	if obj_x + obj_r > x + w then
-		return true
+		return false
 	end
 
 	-- top
-	if obj_y + obj_r < y then
-		return true
+	if obj_y + obj_r + 2 < y then
+		return false
 	end
 
 	-- bottom
-	if obj_y - obj_r > y + h then
+	if obj_y - obj_r - 2 > y + h then
+		return false
+	end
+
+	return true
+end
+
+function check_obj_location(x,y,w,h)
+	-- chekc top, mid, down
+
+	--tr
+	-- if (obj_x > (x+w)/2) and (obj_y + obj_r > y) then
+	-- 	return
+	-- end
+
+	-- Middle
+	if (y + h)> obj_y and obj_y > y  then
 		return true
 	end
 
 	return false
+
 end
+
+
 
 function _init ()
 	cls()
+	frame = 0
+	
+	obj_x = 78
+	obj_dx = 1.6
+	obj_y = 12
+	obj_dy = 3.2
+	obj_r = 1
+
+	obj_col = 7
+	obj_loc = 'n'
+	
+	pad_x = 51
+	pad_y = 116
+	pad_w = 24
+	pad_h = 3
+	pad_col = 1
+	
+	pad_v = 0
+	pad_a = 0.25
+
 end
 
 function _update()
-	is_button_pressed = false
+	local is_button_pressed = false
+	local obj_isMid = false
+	debug = false
+
+	pad_col = 1
+
+	if check_obj_location(pad_x, pad_y, pad_w, pad_h) then
+		obj_isMid = true
+	end
 
 	-- Pad Movement
 	if btn(0) then
@@ -85,42 +116,56 @@ function _update()
 
 	pad_x += pad_v
 
-	if ((pad_x + pad_w) > 127 or pad_x < 0) then
-		pad_v =0
+	if pad_x + pad_w > 127 then
+		pad_x = 127 - pad_w
+	elseif pad_x < 0 then
+		pad_x = 0
 	end
 	
-
-	-- Object Movement logic
-	obj_x += obj_dx
-	obj_y -= obj_dy
-
-	if (obj_x > 123) or (obj_x < 1) then
+	-- Window Collisons
+	if (obj_x > 128 - obj_r) or (obj_x < obj_r) then
 		obj_dx = -obj_dx
 		sfx(0)
 	end
 
-	if (obj_y > 124) or (obj_y < 1) then
+	if (obj_y > 128 - obj_r) or (obj_y < obj_r) then
 		obj_dy = -obj_dy
 		sfx(0)
 	end
 
-	if  not(check_obj_collision(pad_x, pad_y, pad_w, pad_h)) then
-		obj_dy = -obj_dy
-		sfx(3)
-	end
-    
-	-- obj_color logic
-	-- change_obj_col(0.2)
+	-- Pad Collisons
 
-	-- Size logic
-	-- change_size(8, 1.2)
+	if  check_obj_collision(pad_x, pad_y, pad_w, pad_h) then
+
+		if obj_isMid then
+			obj_dx = -obj_dx
+			pad_col = 9
+			sfx(3)
+		else
+			obj_dy = -obj_dy
+			pad_col = 9
+			sfx(3)
+		end
+	end
+
+
+	-- Movmenet 
+	obj_x += obj_dx
+	obj_y += obj_dy
+    
 end
 
 function _draw()
 	cls()
 	
+	rectfill(0,0,128,128,5)
 	circfill(obj_x,obj_y,obj_r,obj_col)
-	rectfill(pad_x, pad_y, pad_x + pad_w, pad_y + pad_h, 1)
+	rectfill(pad_x, pad_y, pad_x + pad_w, pad_y + pad_h, pad_col)
+	print('dx'..obj_dx)
+	print('dy'..obj_dy)
+	print(debug)
+	print(obj_loc)
+
 	
 	
 end
