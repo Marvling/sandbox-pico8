@@ -1,7 +1,7 @@
 pico-8 cartridge // http://www.pico-8.com
 version 32
 __lua__
--- WITH ALTERNATIVE DEFLECTION
+-- WITH BETTER DEFLECTION
 
 function change_obj_col (speed)
 	obj_col %= 15
@@ -67,57 +67,58 @@ function _init ()
 	frame = 0
 	
 	obj_x = 78
-	obj_dx = 1.6
+	obj_dx = 0.8
 	obj_y = 12
-	obj_dy = 3.2
+	obj_dy = 2
 	obj_r = 2
 
 	obj_isMid = false
 	obj_col = 7
 	
 	pad_x = 51
-	pad_y = 90
-	pad_w = 24
-	pad_h = 30
+	pad_y = 118
+	pad_w = 26
+	pad_h = 4
 	pad_col = 1
 	
 	pad_v = 0
-	pad_a = 0.25
+	pad_a = 0.14
 
 end
 
-function _update()
+function _update60()
 	local is_button_pressed = false
 	local next_x, next_y
+	local next_x = obj_x + obj_dx
+	local next_y = obj_y + obj_dy
 
 	pad_col = 1
 
 	-- Pad Movement
+	
 	if btn(0) then
-		-- left
 		pad_v -= pad_a
 		is_button_pressed = true
 	end
+
 	if btn(1) then
-		--right
 		pad_v += pad_a
 		is_button_pressed = true
 	end
 
 	if not(is_button_pressed) then
-		pad_v = pad_v / 1.2
+		pad_v = pad_v / 1.1
 	end
 
-	pad_x += pad_v
-
-	if pad_x + pad_w > 127 then
-		pad_x = 127 - pad_w
-	elseif pad_x < 0 then
+	if pad_x < 0 then 
 		pad_x = 0
+		pad_v = 0
+	elseif pad_x + pad_w > 127 then
+		pad_x = 127 - pad_w
+		pad_v = 0
+	else
+		pad_x += pad_v
 	end
-
-	next_x = obj_x + obj_dx
-	next_y = obj_y + obj_dy
 	
 	-- Window Collisons
 	if (next_x > 128 - obj_r) or (next_x < obj_r) then
@@ -160,7 +161,7 @@ function _draw()
 	rectfill(pad_x, pad_y, pad_x + pad_w, pad_y + pad_h, pad_col)
 	print('dx'..obj_dx)
 	print('dy'..obj_dy)
-	print(obj_isMid)
+	print(is_button_pressed)
 
 	
 	
