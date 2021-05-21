@@ -2,153 +2,127 @@ pico-8 cartridge // http://www.pico-8.com
 version 32
 __lua__
 
-
-function change_obj_col (speed)
-	obj_col %= 15
-	obj_col += speed
+box_x = 32
+box_y = 58
+box_w = 64
+box_h = 12
+ 
+rayx = 0
+rayy = 0
+raydx = -2
+raydy = -2
+ 
+debug1 = "debug"
+ 
+function _init()
 end
-
-function change_size (speed, strength)
-	frame = frame + 1
-
-	if (frame > 32765) then
-		frame = 0
-	end
-
-	obj_r = 3 + (sin(frame/speed))*strength
-
-end
-
-function check_obj_collision(x, y, w, h)
-	
-	--left
-	if obj_x - obj_r < x then
-
-		-- checks if the ball is aligned with the pad vertically
-		if  obj_y + obj_r > y  and obj_y + obj_r < y + h then
-			debug = true
-			obj_dx = - obj_dx
-		end
-		return true	
-	end
-
-	-- right
-	if obj_x + obj_r > x + w then
-		if  obj_y + obj_r > y and obj_y + obj_r < y + h  then
-			debug = true
-			obj_dx = - obj_dx
-		end
-		return true
-	end
-
-	-- top
-	if obj_y + obj_r < y then
-		return true
-	end
-
-	-- bottom
-	if obj_y - obj_r > y + h then
-		return true
-	end
-
-	return false
-end
-
-
-
-function _init ()
-	cls()
-	frame = 0
-	
-	obj_x = 78
-	obj_dx = 1.6
-	obj_y = 12
-	obj_dy = 3.2
-	obj_r = 1
-	obj_col = 7
-	
-	pad_x = 51
-	pad_y = 100
-	pad_w = 24
-	pad_h = 24
-	pad_col = 1
-	
-	pad_v = 0
-	pad_a = 0.25
-
-end
-
+ 
 function _update()
-	local is_button_pressed = false
-	debug = false
-
-	pad_col = 1
-
-	-- Pad Movement
-	if btn(0) then
-		-- left
-		pad_v -= pad_a
-		is_button_pressed = true
-	end
-	if btn(1) then
-		--right
-		pad_v += pad_a
-		is_button_pressed = true
-	end
-
-	if not(is_button_pressed) then
-		pad_v = pad_v / 1.2
-	end
-
-	pad_x += pad_v
-
-	if ((pad_x + pad_w) > 127 or pad_x < 0) then
-		pad_v =0
-	end
-	
-
-	-- Object Movement logic
-
-	obj_x += obj_dx
-	obj_y += obj_dy
-
-	if (obj_x > 128 - obj_r) or (obj_x < obj_r) then
-		obj_dx = -obj_dx
-		sfx(0)
-	end
-
-	if (obj_y > 128 - obj_r) or (obj_y < obj_r) then
-		obj_dy = -obj_dy
-		sfx(0)
-	end
-
-	if  not(check_obj_collision(pad_x, pad_y, pad_w, pad_h)) then
-
-		
-		obj_dy = -obj_dy
-		pad_col = 9
-		sfx(3)
-	end
-    
-	-- obj_color logic
-	-- change_obj_col(0.2)
-
-	-- Size logic
-	-- change_size(8, 1.2)
+ if btn(1) then
+  rayx+=1
+ end
+ if btn(0) then
+  rayx-=1
+ end
+ if btn(2) then
+  rayy-=1
+ end
+ if btn(3) then
+  rayy+=1
+ end 
 end
-
+ 
 function _draw()
-	cls()
-	
-	rectfill(0,0,128,128,5)
-	circfill(obj_x,obj_y,obj_r,obj_col)
-	rectfill(pad_x, pad_y, pad_x + pad_w, pad_y + pad_h, pad_col)
-	print('dx'..obj_dx)
-	print('dy'..obj_dy)
-	print(debug)
-
-	
-	
+    cls()
+    rect(box_x, box_y, box_x+box_w, box_y+box_h, 7)
+    local px, py = rayx, rayy
+    repeat
+        pset(px, py, 8)
+        px+=raydx
+        py+=raydy
+        until px<0 or px>128 or py < 0 or py > 128
+    if deflx_ballbox(rayx,rayy,raydx,raydy,box_x,box_y,box_w,box_h) then
+        print("horizontal")
+    else
+        print("vertical")
+    end
+        print(debug1)
+end
+ 
+function hit_ballbox(bx,by,tx,ty,tw,th)
+ if bx+ball_r < tx then return false end
+ if by+ball_r < ty then return false end
+ if bx-ball_r > tx+tw then return false end
+ if by-ball_r > ty+th then return false end
+ return true
+end
+ 
+function deflx_ballbox(bx,by,bdx,bdy,tx,ty,tw,th)
+ -- calculate wether to deflect the ball
+ -- horizontally or vertically when it hits a box
+ if bdx == 0 then
+  -- moving vertically
+  return false
+ elseif bdy == 0 then
+  -- moving horizontally
+  return true
+ else
+  -- moving diagonally
+  -- calculate slope
+  local slp = bdy / bdx
+  local cx, cy
+  -- check variants
+  if slp > 0 and bdx > 0 then
+   -- moving down right
+   debug1="q1"
+   cx = tx-bx
+   cy = ty-by
+   if cx<=0 then
+    return false
+   elseif cy/cx < slp then
+    return true
+   else
+    return false
+   end
+  elseif slp < 0 and bdx > 0 then
+   debug1="q2"
+   -- moving up right
+   cx = tx-bx
+   cy = ty+th-by
+   if cx<=0 then
+    return false
+   elseif cy/cx < slp then
+    return false
+   else
+    return true
+   end
+  elseif slp > 0 and bdx < 0 then
+   debug1="q3"
+   -- moving left up
+   cx = tx+tw-bx
+   cy = ty+th-by
+   if cx>=0 then
+    return false
+   elseif cy/cx > slp then
+    return false
+   else
+    return true
+   end
+  else
+   -- moving left down
+   debug1="q4"
+   cx = tx+tw-bx
+   cy = ty-by
+   if cx>=0 then
+    return false
+   elseif cy/cx < slp then
+    return false
+   else
+    return true
+   end
+  end
+ end
+ return false
 end
 
 

@@ -1,7 +1,7 @@
 pico-8 cartridge // http://www.pico-8.com
 version 32
 __lua__
-
+-- WITH ALTERNATIVE DEFLECTION
 
 function change_obj_col (speed)
 	obj_col %= 15
@@ -19,25 +19,48 @@ function change_size (speed, strength)
 
 end
 
-function check_obj_collision(x, y, w, h)
+function check_obj_collision(bx, by, br, x, y, w, h)
 
-	if obj_x + obj_r < x then return false end
-	if obj_x - obj_r > x + w then return false end
-	if obj_y + obj_r < y then return false end
-	if obj_y - obj_r > y + h then return false end
+	if bx + br < x then return false end
+	if bx - br > x + w then return false end
+	if by + br < y then return false end
+	if by - br > y + h then return false end
 
 	return true
 end
 
-function check_obj_location(x,y,w,h)
-	
-	-- Aligned with pad
-	if (y + h)> obj_y and obj_y > y  then
-		return true
-	end
-	return false
+function check_obj_location(x, y, w, h)
+    local slp = obj_dy / obj_dx
+    local cx, cy
 
+    if obj_dx == 0 then
+        return false
+
+    elseif obj_dy == 0 then
+        return true
+	-- top right
+    elseif slp > 0 and obj_dx > 0 then
+        cx = x - obj_x
+        cy = y - obj_y
+        return cx > 0 and cy/cx < slp
+
+    elseif slp < 0 and obj_dx > 0 then
+        cx = x - obj_x
+        cy = y + h - obj_y
+        return cx > 0 and cy/cx >= slp
+		
+    elseif slp > 0 and obj_dx < 0 then
+        cx = x + w - obj_x
+        cy = y + h - obj_y
+        return cx < 0 and cy/cx <= slp
+    else
+        cx = x + w - obj_x
+        cy = y - obj_y
+        return cx < 0 and cy/cx >= slp
+    end
 end
+
+
 
 function _init ()
 	cls()
@@ -65,13 +88,9 @@ end
 
 function _update()
 	local is_button_pressed = false
-	obj_isMid = false
+	local next_x, next_y
 
 	pad_col = 1
-
-	if check_obj_location(pad_x, pad_y, pad_w, pad_h) then
-		obj_isMid = true
-	end
 
 	-- Pad Movement
 	if btn(0) then
@@ -96,35 +115,40 @@ function _update()
 	elseif pad_x < 0 then
 		pad_x = 0
 	end
+
+	next_x = obj_x + obj_dx
+	next_y = obj_y + obj_dy
 	
 	-- Window Collisons
-	if (obj_x > 127 - obj_r) or (obj_x < obj_r) then
+	if (next_x > 128 - obj_r) or (next_x < obj_r) then
 		mid(0, obj_x, 127)
 		obj_dx = -obj_dx
 		sfx(0)
 	end
 
-	if (obj_y > 127 - obj_r) or (obj_y < obj_r) then
+	if (next_y > 128 - obj_r) or (next_y < obj_r) then
 		mid(0, obj_y, 127)
 		obj_dy = -obj_dy
 		sfx(0)
 	end
 
+
 	-- Pad Collisons
 
-	if  check_obj_collision(pad_x, pad_y, pad_w, pad_h) then
-		if obj_isMid then
-			obj_dx = -obj_dx
+	if  check_obj_collision(next_x, next_y, obj_r, pad_x, pad_y, pad_w, pad_h) then
+
+		if check_obj_location(pad_x, pad_y, pad_w, pad_h) then
+			obj_dx = - obj_dx
 		else
-			obj_dy = -obj_dy
-		end
+			obj_dy = - obj_dy
+		end	
 		pad_col = 9
 		sfx(3)
 	end
 
 	-- Movmenet 
-	obj_x += obj_dx
-	obj_y += obj_dy
+	obj_x = next_x
+	obj_y = next_y
     
 end
 
@@ -177,4 +201,4 @@ __sfx__
 0001000008770107701676016760177501774017730177201771013710117100d7000f100101000010000100011000f10001100001000010000100001000c1000c1000c1000b1000b1000a1000a1000a1000a100
 0001000005850108501885021850278502d8503185033850388503a8503c8503e8503f8503f8503e8503d8503b85039850378503385031850308502c850298502685024850208501b85016850118500885003850
 00100000059700f970189601c96022950269402c9302f9202c91028910171002120013100182001620010200091000c2000920003100042000090001200000000000000000000000000000000000000000000000
-000100000f120141301d1401d1401c140181401113004110081200e13012130131300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000100000f120141401d1601d1601c160181501113004120081300e15012150131300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
